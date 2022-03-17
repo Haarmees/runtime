@@ -1169,11 +1169,7 @@ namespace InteropLibImports
         bool isValid = false;
         ::OBJECTHANDLE objectHandle = static_cast<::OBJECTHANDLE>(handle);
 
-        {
-            // Switch to cooperative mode so the handle can be safely inspected.
-            GCX_COOP_THREAD_EXISTS(GET_THREAD());
-            isValid = ObjectFromHandle(objectHandle) != NULL;
-        }
+        isValid = ObjectHandleIsNull(objectHandle) != FALSE;
 
         return isValid;
     }
@@ -1434,7 +1430,7 @@ extern "C" BOOL QCALLTYPE ComWrappers_TryGetOrCreateComInterfaceForObject(
 {
     QCALL_CONTRACT;
 
-    bool success;
+    bool success = false;
 
     BEGIN_QCALL;
 
@@ -1469,7 +1465,7 @@ extern "C" BOOL QCALLTYPE ComWrappers_TryGetOrCreateObjectForComInstance(
 
     _ASSERTE(ext != NULL);
 
-    bool success;
+    bool success = false;
 
     BEGIN_QCALL;
 

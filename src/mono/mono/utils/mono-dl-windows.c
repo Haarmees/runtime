@@ -50,7 +50,7 @@ mono_dl_open_file (const char *file, int flags)
 {
 	gpointer hModule = NULL;
 	if (file) {
-		gunichar2* file_utf16 = g_utf8_to_utf16 (file, strlen (file), NULL, NULL, NULL);
+		gunichar2* file_utf16 = g_utf8_to_utf16 (file, (glong)strlen (file), NULL, NULL, NULL);
 
 #if HAVE_API_SUPPORT_WIN32_SET_ERROR_MODE
 		guint last_sem = SetErrorMode (SEM_FAILCRITICALERRORS);
@@ -205,7 +205,7 @@ mono_dl_current_error_string (void)
 #else
 	WCHAR local_buf [1024];
 	if (!FormatMessageW (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-		code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), local_buf, G_N_ELEMENTS (local_buf) - 1, NULL) )
+		code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), local_buf, STRING_LENGTH (local_buf), NULL) )
 		local_buf [0] = TEXT('\0');
 
 	ret = u16to8 (local_buf)

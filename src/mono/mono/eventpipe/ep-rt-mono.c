@@ -2953,6 +2953,8 @@ get_module_event_data (
 			module_data->module_flags |= MODULE_FLAGS_NATIVE_MODULE;
 
 		module_data->module_il_path = image && image->filename ? image->filename : "";
+		module_data->module_il_pdb_path = "";
+		module_data->module_il_pdb_age = 0;
 
 		if (image && image->image_info) {
 			MonoPEDirEntry *debug_dir_entry = (MonoPEDirEntry *)&image->image_info->cli_header.datadir.pe_debug;
@@ -2994,6 +2996,7 @@ ep_rt_mono_write_event_module_load (MonoImage *image)
 
 	if (image) {
 		ModuleEventData module_data;
+		memset (&module_data, 0, sizeof (module_data));
 		if (get_module_event_data (image, &module_data)) {
 			FireEtwModuleLoad_V2 (
 				module_data.module_id,
@@ -3037,6 +3040,7 @@ ep_rt_mono_write_event_module_unload (MonoImage *image)
 
 	if (image) {
 		ModuleEventData module_data;
+		memset (&module_data, 0, sizeof (module_data));
 		if (get_module_event_data (image, &module_data)) {
 			FireEtwModuleUnload_V2 (
 				module_data.module_id,
@@ -3095,6 +3099,7 @@ ep_rt_mono_write_event_assembly_load (MonoAssembly *assembly)
 
 	if (assembly) {
 		AssemblyEventData assembly_data;
+		memset (&assembly_data, 0, sizeof (assembly_data));
 		if (get_assembly_event_data (assembly, &assembly_data)) {
 			FireEtwAssemblyLoad_V1 (
 				assembly_data.assembly_id,
@@ -3121,6 +3126,7 @@ ep_rt_mono_write_event_assembly_unload (MonoAssembly *assembly)
 
 	if (assembly) {
 		AssemblyEventData assembly_data;
+		memset (&assembly_data, 0, sizeof (assembly_data));
 		if (get_assembly_event_data (assembly, &assembly_data)) {
 			FireEtwAssemblyUnload_V1 (
 				assembly_data.assembly_id,
@@ -4326,16 +4332,16 @@ mono_profiler_fire_buffered_gc_event_root_register (
 	uint8_t root_source = (uint8_t)source;
 	uintptr_t root_key = (uintptr_t)key;
 	const char *root_name = (name ? name : "");
-	uint32_t root_name_len = strlen (root_name) + 1;
+	size_t root_name_len = strlen (root_name) + 1;
 
 	MonoProfilerBufferedGCEvent gc_event_data;
 	gc_event_data.type = MONO_PROFILER_BUFFERED_GC_EVENT_ROOT_REGISTER;
-	gc_event_data.payload_size =
-		sizeof (root_id) +
+	gc_event_data.payload_size = (uint32_t)
+		(sizeof (root_id) +
 		sizeof (root_size) +
 		sizeof (root_source) +
 		sizeof (root_key) +
-		root_name_len;
+		root_name_len);
 
 	uint8_t * buffer = mono_profiler_buffered_gc_event_alloc (gc_event_data.payload_size);
 	if (buffer) {
@@ -4539,8 +4545,8 @@ mono_profiler_fire_buffered_gc_event_moves (
 	MonoProfilerBufferedGCEvent gc_event_data;
 	gc_event_data.type = MONO_PROFILER_BUFFERED_GC_EVENT_MOVES;
 	gc_event_data.payload_size =
-		sizeof (count) +
-		(count * (sizeof (uintptr_t) + sizeof (uintptr_t)));
+		(uint32_t)(sizeof (count) +
+		(count * (sizeof (uintptr_t) + sizeof (uintptr_t))));
 
 	uint8_t * buffer = mono_profiler_buffered_gc_event_alloc (gc_event_data.payload_size);
 	if (buffer) {
@@ -4606,8 +4612,8 @@ mono_profiler_fire_buffered_gc_event_roots (
 	MonoProfilerBufferedGCEvent gc_event_data;
 	gc_event_data.type = MONO_PROFILER_BUFFERED_GC_EVENT_ROOTS;
 	gc_event_data.payload_size =
-		sizeof (count) +
-		(count * (sizeof (uintptr_t) + sizeof (uintptr_t)));
+		(uint32_t)(sizeof (count) +
+		(count * (sizeof (uintptr_t) + sizeof (uintptr_t))));
 
 	uint8_t * buffer = mono_profiler_buffered_gc_event_alloc (gc_event_data.payload_size);
 	if (buffer) {
@@ -5245,7 +5251,7 @@ mono_profiler_class_loading (
 
 	uint64_t class_id;
 	uint64_t module_id;
-	
+
 	mono_profiler_get_class_data (klass, &class_id, &module_id, NULL, NULL, NULL);
 
 	mono_profiler_fire_event_enter ();
@@ -5428,7 +5434,7 @@ mono_profiler_module_loading (
 {
 	if (!EventEnabledMonoProfilerModuleLoading ())
 		return;
-	
+
 	mono_profiler_fire_event_enter ();
 
 	FireEtwMonoProfilerModuleLoading (
@@ -5466,13 +5472,14 @@ mono_profiler_module_loaded (
 {
 	if (!EventEnabledMonoProfilerModuleLoaded ())
 		return;
-	
+
 	uint64_t module_id = (uint64_t)image;
 	const ep_char8_t *module_path = NULL;
 	const ep_char8_t *module_guid = NULL;
 
 	if (image) {
 		ModuleEventData module_data;
+		memset (&module_data, 0, sizeof (module_data));
 		if (get_module_event_data (image, &module_data))
 			module_path = (const ep_char8_t *)module_data.module_il_path;
 		module_guid = (const ep_char8_t *)mono_image_get_guid (image);
@@ -5517,13 +5524,14 @@ mono_profiler_module_unloaded (
 {
 	if (!EventEnabledMonoProfilerModuleUnloaded ())
 		return;
-	
+
 	uint64_t module_id = (uint64_t)image;
 	const ep_char8_t *module_path = NULL;
 	const ep_char8_t *module_guid = NULL;
 
 	if (image) {
 		ModuleEventData module_data;
+		memset (&module_data, 0, sizeof (module_data));
 		if (get_module_event_data (image, &module_data))
 			module_path = (const ep_char8_t *)module_data.module_il_path;
 		module_guid = (const ep_char8_t *)mono_image_get_guid (image);
@@ -5570,7 +5578,7 @@ mono_profiler_assembly_loading (
 {
 	if (!EventEnabledMonoProfilerAssemblyLoading ())
 		return;
-	
+
 	uint64_t assembly_id;
 	uint64_t module_id;
 
@@ -5624,7 +5632,7 @@ mono_profiler_assembly_unloading (
 {
 	if (!EventEnabledMonoProfilerAssemblyUnloading ())
 		return;
-	
+
 	uint64_t assembly_id;
 	uint64_t module_id;
 
@@ -6039,7 +6047,7 @@ mono_profiler_gc_allocation (
 	if (object) {
 		vtable_id = (uint64_t)mono_object_get_vtable_internal (object);
 		object_size = (uint64_t)mono_object_get_size_internal (object);
-		
+
 		/* account for object alignment */
 		object_size += 7;
 		object_size &= ~7;
